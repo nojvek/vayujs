@@ -4,15 +4,18 @@ doc = document
 
 
 
+class TodoList extends VComponent
+	constructor: (@list) ->
 
-class TodoList
-	constructor: (@list) -> 
+	getInitialState: ->
+		todos: @list
 
 	addTodo: ->
+		@setState(todos: @list.push(@refs.todoInput.value))
 
-	render: ->
+	render: (state) ->
 		e('div', [
-			e('ul', @list.map((item) -> e("li",[item]))) ,
+			e('ul', @state.todos.map((item) -> e("li",[item]))) ,
 			e('input', {ref:'todoInput', placeholder:'Enter Todo'}),
 			e('button',{'on-click':'addTodo'}, 'Add Todo')
 		])

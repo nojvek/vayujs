@@ -1,3 +1,4 @@
+
 VDOM = 
 	elem: (tagName, props, children) ->
 		if !tagName or tagName == ""
@@ -35,4 +36,34 @@ VDOM =
 						domElem.setAttribute(prop, value)
 
 		return domElem
+
+	mount: (component, domElem) ->
+		component.setState(component.getInitialState())
+		tree = component.renderTree()
+		domElem = VDOM.toDOM(tree)
+		console.log("domElem", domElem)
+		$(domElem).empty().append(domElem)
+
+
+class VComponent
+	constructor: ->
+		@isDirty = false;
+		@state = {};
+		@oldTree = {}
+		@newTree = {}
+		@element = undefined
+
+	initialize: ->
+		@state = @getInitialState()
+
+	setState: (newState) ->
+		$.extend(@state, newState);
+		@isDirty = true;
+
+	#Component functions
+
+	getInitialState: ->
+		return {}
+
+	render: ->
 
