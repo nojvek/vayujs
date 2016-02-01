@@ -1,0 +1,12 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "outDir": "dist",
+        "jsx": "react",
+        "reactNamespace": "OmNomDom"
+    },
+    "files": [
+        "omNomDom.ts",
+        "app.tsx"
+    ]
+}
