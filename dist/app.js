@@ -50,13 +50,14 @@ var todoList = {
     }
 };
 var randomGrid = {
+    size: 10,
     getRandomNumber: function () {
         return Math.floor(Math.random() * 10);
     },
     render: function () {
         var _this = this;
-        return (OmNomDom.createElement("table", null, Array(2).fill().map(function () {
-            return OmNomDom.createElement("tr", null, Array(2).fill().map(function () {
+        return (OmNomDom.createElement("table", null, Array(this.size).fill().map(function () {
+            return OmNomDom.createElement("tr", null, Array(_this.size).fill().map(function () {
                 return OmNomDom.createElement("td", {style: "border: 1px solid gray"}, _this.getRandomNumber());
             }));
         })));
@@ -177,3 +178,20 @@ var treeB = {
         }
     ]
 };
+/*
+ object (attrs)
+ for keys in new
+ if not in old
+  //add attr
+ if in old and not same value
+  // change attr
+
+  for remainingKeys in old
+    // remove Attr
+
+  if newName isnt oldName
+    // replace
+
+
+
+*/ 

@@ -60,15 +60,16 @@ let todoList = {
 }
 
 let randomGrid = {
+    size: 10,
     getRandomNumber(){
         return Math.floor(Math.random() * 10)
     },
     render(){
         return (
             <table>
-            {Array(2).fill().map(() =>
+            {Array(this.size).fill().map(() =>
                 <tr>
-                {Array(2).fill().map(()=>
+                {Array(this.size).fill().map(()=>
                     <td style="border: 1px solid gray">{this.getRandomNumber()}</td>
                 )}
                 </tr>
@@ -199,3 +200,21 @@ let treeB = {
     }
   ]
 }
+
+/*
+ object (attrs)
+ for keys in new
+ if not in old
+  //add attr
+ if in old and not same value
+  // change attr
+
+  for remainingKeys in old
+    // remove Attr
+
+  if newName isnt oldName
+    // replace
+
+
+
+*/

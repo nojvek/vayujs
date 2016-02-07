@@ -38,6 +38,7 @@ var OmNomDom;
     function toDom(vtree) {
         var name = vtree.name, attrs = vtree.attrs, children = vtree.children;
         var element = document.createElement(name);
+        element.vtree = vtree;
         if (attrs) {
             for (var attrName in attrs) {
                 var attrValue = attrs[attrName];

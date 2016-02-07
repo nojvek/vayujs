@@ -40,7 +40,8 @@ namespace OmNomDom {
 
     export function toDom(vtree){
         let {name, attrs, children} = vtree
-        let element = document.createElement(name)
+        let element = document.createElement(name);
+        (<any>element).vtree = vtree;
 
         if (attrs) {
             for (let attrName in attrs) {
@@ -49,6 +50,7 @@ namespace OmNomDom {
                     element.setAttribute(attrName, attrValue.join(" "))
                 }
                 else if (attrValue instanceof Object) {
+
                     // if attrName is classlist, copy to classList property
                     // we can efficiently diff and apply if its left as an object
                     // for others convert it to a string
