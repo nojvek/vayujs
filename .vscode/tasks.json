@@ -1,19 +1,9 @@
 {
 	"version": "0.1.0",
-
-	// The command is tsc. Assumes that tsc has been installed using npm install -g typescript
-	"command": "node",
-
-	// The command is a shell script
+	"command": "tsc",
+	"problemMatcher": "$tsc",
 	"isShellCommand": true,
-
-	// Show the output window only if unrecognized errors occur.
-	"showOutput": "silent",
-
-	// args is the HelloWorld program to compile.
-	"args": ["tsc.js"],
-
-	// use the standard tsc problem matcher to find compile problems
-	// in the output.
-	"problemMatcher": "$tsc"
+	"showOutput": "always",
+	"args": ["-p", "src", "-w"],
+	"isWatching": true
 }

@@ -1,16 +1,8 @@
 # vayujs
-Simple Fast Virtual Dom written with typescript
+Simple Fast VDom library for Typescript's tsx
 
  * Support React like interface
- * VM Friendly diffing - efficient garbage collection
- * Delegated events
+ * Dom Recycling - Great on mobile devices and animations
  * Components
- * Animations
- * Diff & Render Strategies
- * Router & Controllers
- * Under 2k lines, super, elegant future-proof design.
-
-Examples
- * Das Grid
- * Auto-complete console
- * File System Explorer
+ * 2kb gzipped
+ * Single file, fire and forget.

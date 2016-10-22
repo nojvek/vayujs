@@ -1,0 +1,26 @@
+{
+  "name": "vayujs",
+  "version": "0.1.0",
+  "description": "Vayu.js - Simple Fast Virtul Dom Library",
+  "main": "dist/vayu.js",
+  "scripts": {
+    "build": "tsc -p src",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nojvek/vayujs.git"
+  },
+  "keywords": [
+    "simple",
+    "fast",
+    "virtual",
+    "dom"
+  ],
+  "author": "nojvek",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nojvek/vayujs/issues"
+  },
+  "homepage": "https://github.com/nojvek/vayujs#readme"
+}

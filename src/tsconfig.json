@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "outDir": "../dist",
+        "noUnusedLocals": true,
+        "noImplicitAny": true,
+        "sourceMap": true,
+        "jsx": "react",
+        "reactNamespace": "Vayu",
+        "lib": [
+            "es2016",
+            "dom"
+        ]
+    }
+}

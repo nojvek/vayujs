@@ -1,1 +1,0 @@
-../../personal/TypeScript/built/local/tsc.js
