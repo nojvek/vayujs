@@ -1,56 +1,75 @@
 let c = console;
 let $ = (selector) => document.querySelector(selector);
-const todos = [
+const todoList = [
     { completed: false, title: "wake up in morning" },
     { completed: true, title: "do work" },
     { completed: true, title: "create dom" },
     { completed: false, title: "do diffs" },
     { completed: false, title: "create delegated events tomorrow" }
 ];
-let todoList = {
-    todos,
+/**
+ * View Model acts like a store.
+ * Its the only place where state is mutated and changed
+ * When any mutator function is called, it will re-render the bound view.
+ */
+class TodoViewModel {
+    constructor() {
+        this._newTodo = "";
+        this._todos = todoList;
+    }
+    get todos() {
+        return this._todos;
+    }
+    get newTodo() {
+        return this._newTodo;
+    }
+    set newTodo(value) {
+        this._newTodo = value;
+    }
     addTodo() {
-        let todo = { title: this.newTodo };
-        this.todos.push(todo);
-        this.newTodo = "";
+        const todo = { title: this._newTodo, completed: false };
+        this._todos.push(todo);
+        this._newTodo = "";
         return todo;
-    },
-    editTodo(todo) {
-        todo.editing = true;
-    },
+    }
     toggleComplete(todo) {
         todo.completed = !todo.completed;
-    },
-    deleteTodo(todo) {
-        let index = this.todos.indexOf(todo);
-        if (index)
-            this.todos.splice();
-    },
-    render() {
-        return Vayu.createElement("section", {class: "todoapp"}, 
-            Vayu.createElement("header", {class: "header"}, 
-                Vayu.createElement("h4", null, "todos"), 
-                Vayu.createElement("input", {class: "new-todo", autofocus: true, autocomplete: "off", placeholder: "What needs to be done?", value: this.newTodo, "on-change": this.addTodo})), 
-            Vayu.createElement("section", {class: "main", style: { display: (this.todos && this.todos.length) ? "block" : "none" }}, 
-                Vayu.createElement("ul", {class: "todo-list"}, this.todos.map((todo) => Vayu.createElement("li", {class: { todo: true, completed: todo.completed, editing: todo.editing }}, 
-                    Vayu.createElement("div", {class: "view"}, 
-                        (!todo.editing) ?
-                            Vayu.createElement("input", {class: "toggle", type: "checkbox", checked: todo.completed})
-                            : null, 
-                        Vayu.createElement("button", {class: "destroy", "on-click": () => this.deleteTodo(todo)}, "X"), 
-                        todo.title, 
-                        Vayu.createElement("div", {class: "iconBorder"}, 
-                            Vayu.createElement("div", {class: "icon"})
-                        ))
-                )))
-            ));
     }
-};
+    deleteTodo(todo) {
+        let index = this._todos.indexOf(todo);
+        if (index)
+            this._todos.splice(index);
+    }
+}
+var TodoView;
+(function (TodoView) {
+    const TodoItem = (p) => {
+        const { todo, vm } = p;
+        Vayu.createElement("li", {class: { todo: true, completed: p.todo.completed, editing: p.todo.editing }}, 
+            Vayu.createElement("div", {class: "view"}, 
+                (!todo.editing) ?
+                    Vayu.createElement("input", {class: "toggle", type: "checkbox", checked: todo.completed})
+                    : null, 
+                Vayu.createElement("button", {class: "destroy", "on-click": () => vm.deleteTodo(todo)}, "X"), 
+                todo.title, 
+                Vayu.createElement("div", {class: "iconBorder"}, 
+                    Vayu.createElement("div", {class: "icon"})
+                ))
+        );
+    };
+    TodoView.render = (vm) => Vayu.createElement("section", {class: "todoapp"}, 
+        Vayu.createElement("header", {class: "header"}, 
+            Vayu.createElement("h4", null, "Todos"), 
+            Vayu.createElement("input", {class: "new-todo", autofocus: true, autocomplete: "off", placeholder: "What needs to be done?", value: vm.newTodo, "on-change": (e) => vm.newTodo = e.target.value})), 
+        Vayu.createElement("section", {class: "main", style: { display: (vm.todos && vm.todos.length) ? "block" : "none" }}, 
+            Vayu.createElement("ul", {class: "todo-list"}, vm.todos.map((todo) => Vayu.createElement(TodoItem, {todo: todo, vm: vm})))
+        ));
+})(TodoView || (TodoView = {}));
 let randomGrid = {
-    size: 70,
+    size: 10,
     getRandomNumber() {
         //return "0";
-        return Math.random() > 0.5 ? 1 : 0;
+        return Math.random() > 0.9 ? 1 : 0;
         //return Math.floor(Math.random() * 10).toString();
     },
     render() {
