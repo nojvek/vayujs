@@ -55,8 +55,8 @@ var Vayu;
         throw new Error(`unrecognized node name:${name}`);
     }
     Vayu.createElement = createElement;
-    function createTextNode(text) {
-        return { type: 3 /* Text */, text: text, hash: updateHashStr(INIT_HASH, text), dom: null };
+    function createTextNode(text, domNode = null) {
+        return { type: 3 /* Text */, text: text, hash: updateHashStr(INIT_HASH, text), dom: domNode };
     }
     function hasValue(val) {
         return (val !== null && val !== void 0);
@@ -90,17 +90,18 @@ var Vayu;
         throw Error("Invalid node type: " + typeof node);
     }
     function updateHashStr(hash, str) {
-        for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i))
-            ;
+        //for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i));
         return hash;
     }
     function updateHashNum(hash, num) {
         return (hash * 33) ^ num;
     }
-    function apply(elem, node) {
-        //console.log(toHtml(node));
-        //console.log(node);
-        patchElem(elem, elem.firstElementChild, node);
+    function apply(domElem, nextVNode) {
+        const domVNode = domElem.vnode || fromDomNode(domElem.firstElementChild);
+        updateElem(domElem, domVNode, nextVNode);
+        if (nextVNode && domVNode.hash !== nextVNode.hash) {
+            domElem.vnode = nextVNode;
+        }
     }
     Vayu.apply = apply;
     function toHtml(vnode, indent = 0) {
@@ -125,6 +126,11 @@ var Vayu;
     }
     Vayu.toHtml = toHtml;
     function fromDomNode(domNode) {
+        if (!domNode)
+            return null;
+        if (domNode.nodeType === 3 /* Text */) {
+            return createTextNode(domNode.nodeValue, domNode);
+        }
         const name = domNode.nodeName.toLowerCase();
         const attrs = {};
         const children = [];
@@ -142,14 +148,8 @@ var Vayu;
         for (let i = 0, childNodes = domNode.childNodes, len = childNodes.length; i < len; ++i) {
             const childNode = childNodes[i];
             const nodeType = childNode.nodeType;
-            let vnode;
-            if (nodeType === 1 /* Element */) {
-                vnode = fromDomNode(childNode);
-            }
-            else if (nodeType === 3 /* Text */) {
-                vnode = createTextNode(childNode.nodeValue);
-            }
-            if (vnode) {
+            if (nodeType === 1 /* Element */ || nodeType === 3 /* Text */) {
+                const vnode = fromDomNode(childNode);
                 hash = updateHashNum(hash, vnode.hash);
                 children.push(vnode);
             }
@@ -181,35 +181,39 @@ var Vayu;
         return domNode;
     }
     Vayu.toDomNode = toDomNode;
-    function patchElem(parentElem, domVNode, curVNode) {
+    function updateElem(parentElem, domVNode, nextVNode) {
         // Create new domNode from curVNodeii
-        if (!domVNode && curVNode) {
-            parentElem.appendChild(toDomNode(curVNode));
+        if (!domVNode && nextVNode) {
+            parentElem.appendChild(toDomNode(nextVNode));
         }
-        else if (domVNode && !curVNode) {
+        else if (domVNode && !nextVNode) {
             parentElem.removeChild(domVNode.dom);
         }
-        else if (domVNode === curVNode || domVNode.hash === curVNode.hash) {
-            return; // No subtree changes. Netflix and chill
+        else if (domVNode === nextVNode) {
         }
-        else if (curVNode.type == 1 /* Element */ && (domVNode.type === 3 /* Text */ || curVNode.name !== domVNode.name)) {
-            parentElem.replaceChild(toDomNode(curVNode), domVNode.dom);
+        else if (domVNode.hash === nextVNode.hash) {
+            nextVNode.dom = domVNode.dom;
         }
-        else if (curVNode.type == 3 /* Text */) {
-            if (domVNode.text !== curVNode.text) {
-                domVNode.dom.nodeValue = curVNode.text;
+        else if (nextVNode.type == 1 /* Element */ && (domVNode.type === 3 /* Text */ || nextVNode.name !== domVNode.name)) {
+            parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
+        }
+        else if (domVNode.type === 3 /* Text */ && nextVNode.type === 3 /* Text */) {
+            if (domVNode.text !== nextVNode.text) {
+                domVNode.dom.nodeValue = nextVNode.text;
             }
+            nextVNode.dom = domVNode.dom;
         }
         else {
         }
+        return nextVNode;
     }
-    Vayu.patchElem = patchElem;
-    function patchAttrs(elem, oldAttrs, newAttrs) {
+    Vayu.updateElem = updateElem;
+    function updateAttrs(domElem, oldAttrs, newAttrs) {
         // Add/edit attributes
         for (let attr of Object.keys(newAttrs || {})) {
             const attrExists = oldAttrs.hasOwnProperty(attr);
             if (!attrExists || newAttrs[attr] !== oldAttrs[attr]) {
-                elem.setAttribute(attr, newAttrs[attr]);
+                domElem.setAttribute(attr, newAttrs[attr]);
             }
             if (attrExists) {
                 delete oldAttrs[attr];
@@ -217,9 +221,9 @@ var Vayu;
         }
         // Remove attributes
         for (let key of Object.keys(oldAttrs)) {
-            elem.removeAttribute(key);
+            domElem.removeAttribute(key);
         }
     }
-    Vayu.patchAttrs = patchAttrs;
+    Vayu.updateAttrs = updateAttrs;
 })(Vayu || (Vayu = {}));
 //# sourceMappingURL=vayu.js.map

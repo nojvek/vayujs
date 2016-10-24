@@ -38,12 +38,9 @@ namespace Vayu {
 
     export type VNode = VElementNode | VTextNode;
 
-    // Extensions on Dom
+    // so types don't get confusing
     type DomElement = Element;
-
-    interface DomNode extends Node {
-        vnode?: VNode;
-    }
+    type DomNode = Node;
 
     /**
      * The main function that translates JSX into VNode's
@@ -104,8 +101,8 @@ namespace Vayu {
         throw new Error(`unrecognized node name:${name}`);
     }
 
-    function createTextNode(text: string): VTextNode {
-        return { type: NodeType.Text, text: text, hash: updateHashStr(INIT_HASH, text), dom: null };
+    function createTextNode(text: string, domNode: DomNode = null): VTextNode {
+        return { type: NodeType.Text, text: text, hash: updateHashStr(INIT_HASH, text), dom: domNode };
     }
 
     function hasValue(val: any): boolean {
@@ -147,7 +144,7 @@ namespace Vayu {
 
 
     function updateHashStr(hash: number, str: string): number {
-        for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i));
+        //for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i));
         return hash;
     }
 
@@ -156,10 +153,12 @@ namespace Vayu {
     }
 
 
-    export function apply(elem: DomElement, node: VNode) {
-        //console.log(toHtml(node));
-        //console.log(node);
-        patchElem(elem, elem.firstElementChild, node);
+    export function apply(domElem: DomElement, nextVNode: VNode) {
+        const domVNode = (<any>domElem).vnode || fromDomNode(domElem.firstElementChild);
+        updateElem(domElem, domVNode, nextVNode);
+        if (nextVNode && domVNode.hash !== nextVNode.hash) {
+            (<any>domElem).vnode = nextVNode;
+        }
     }
 
     export function toHtml(vnode: VNode, indent = 0): string {
@@ -188,6 +187,12 @@ namespace Vayu {
     }
 
     export function fromDomNode(domNode: DomNode): VNode {
+        if (!domNode) return null;
+
+        if (domNode.nodeType === NodeType.Text) {
+            return createTextNode(domNode.nodeValue, domNode);
+        }
+
         const name = domNode.nodeName.toLowerCase();
         const attrs: Attrs = {};
         const children: VNode[] = [];
@@ -209,16 +214,9 @@ namespace Vayu {
         for (let i = 0, childNodes = domNode.childNodes, len = childNodes.length; i < len; ++i) {
             const childNode = childNodes[i];
             const nodeType = childNode.nodeType;
-            let vnode: VNode;
 
-            if (nodeType === NodeType.Element) {
-                vnode = fromDomNode(<DomNode>childNode);
-            }
-            else if (nodeType === NodeType.Text) {
-                vnode = createTextNode(childNode.nodeValue);
-            }
-
-            if (vnode) {
+            if (nodeType === NodeType.Element || nodeType === NodeType.Text) {
+                const vnode = fromDomNode(childNode);
                 hash = updateHashNum(hash, vnode.hash);
                 children.push(vnode);
             }
@@ -255,41 +253,48 @@ namespace Vayu {
         return domNode;
     }
 
-    export function patchElem(parentElem: DomNode, domVNode: VNode, curVNode: VNode, ) {
+    export function updateElem(parentElem: DomNode, domVNode: VNode, nextVNode: VNode): VNode {
         // Create new domNode from curVNodeii
-        if (!domVNode && curVNode) {
-            parentElem.appendChild(toDomNode(curVNode));
+        if (!domVNode && nextVNode) {
+            parentElem.appendChild(toDomNode(nextVNode));
         }
         // Remove existing domNode
-        else if (domVNode && !curVNode) {
+        else if (domVNode && !nextVNode) {
             parentElem.removeChild(domVNode.dom);
         }
-        else if (domVNode === curVNode || domVNode.hash === curVNode.hash) {
-            return; // No subtree changes. Netflix and chill
+        // Same Ref, noop
+        else if (domVNode === nextVNode ) {
+        }
+        // Hashes match, copy dom to new node
+        else if (domVNode.hash === nextVNode.hash) {
+            nextVNode.dom = domVNode.dom;
         }
         // Either elem->text change or div->iframe change. Replace node
-        else if (curVNode.type == NodeType.Element && (domVNode.type === NodeType.Text || curVNode.name !== domVNode.name)) {
-           parentElem.replaceChild(toDomNode(curVNode), domVNode.dom);
+        else if (nextVNode.type == NodeType.Element && (domVNode.type === NodeType.Text || nextVNode.name !== domVNode.name)) {
+           parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
         }
         // Edit Text
-        else if (curVNode.type == NodeType.Text) {
-            if ((<VTextNode>domVNode).text !== curVNode.text) {
-                domVNode.dom.nodeValue = curVNode.text;
+        else if (domVNode.type === NodeType.Text && nextVNode.type === NodeType.Text) {
+            if (domVNode.text !== nextVNode.text) {
+                domVNode.dom.nodeValue = nextVNode.text;
             }
+            nextVNode.dom = domVNode.dom
         }
         // Edit DomElement
         else {
             //patchAttrs(elem, getElemAttrs(elem), newNode.attrs);
             //patchChildren(elem, elem.childNodes, newNode.children);
         }
+
+        return nextVNode;
     }
 
-    export function patchAttrs(elem: DomElement, oldAttrs: any, newAttrs: any) {
+    export function updateAttrs(domElem: DomElement, oldAttrs: any, newAttrs: any) {
         // Add/edit attributes
         for (let attr of Object.keys(newAttrs || {})) {
             const attrExists = oldAttrs.hasOwnProperty(attr);
             if (!attrExists || newAttrs[attr] !== oldAttrs[attr]) {
-                elem.setAttribute(attr, newAttrs[attr]);
+                domElem.setAttribute(attr, newAttrs[attr]);
                 //console.log("setAttribute", elem, attr, oldAttrs[attr], newAttrs[attr]);
             }
             if (attrExists) {
@@ -299,7 +304,7 @@ namespace Vayu {
 
         // Remove attributes
         for (let key of Object.keys(oldAttrs)) {
-            elem.removeAttribute(key);
+            domElem.removeAttribute(key);
             //console.log("removeAttribute", elem, key);
         }
     }

@@ -91,7 +91,7 @@ namespace TodoView {
 }
 
 let randomGrid = {
-    size: 10,
+    size: 100,
     getRandomNumber() {
         //return "0";
         return Math.random() > 0.9 ? 1 : 0
