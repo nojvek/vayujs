@@ -90,20 +90,21 @@ var Vayu;
         throw Error("Invalid node type: " + typeof node);
     }
     function updateHashStr(hash, str) {
-        //for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i));
+        for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i))
+            ;
         return hash;
     }
     function updateHashNum(hash, num) {
         return (hash * 33) ^ num;
     }
-    function apply(domElem, nextVNode) {
+    function render(domElem, nextVNode) {
         const domVNode = domElem.vnode || fromDomNode(domElem.firstElementChild);
-        updateElem(domElem, domVNode, nextVNode);
-        if (nextVNode && domVNode.hash !== nextVNode.hash) {
+        nextVNode = updateElem(domElem, domVNode, nextVNode);
+        if (nextVNode && domVNode.vnode !== nextVNode) {
             domElem.vnode = nextVNode;
         }
     }
-    Vayu.apply = apply;
+    Vayu.render = render;
     function toHtml(vnode, indent = 0) {
         if (!vnode)
             return "";
@@ -185,17 +186,20 @@ var Vayu;
         // Create new domNode from curVNodeii
         if (!domVNode && nextVNode) {
             parentElem.appendChild(toDomNode(nextVNode));
+            console.log("appendChild");
         }
         else if (domVNode && !nextVNode) {
             parentElem.removeChild(domVNode.dom);
+            console.log("removeChild");
         }
         else if (domVNode === nextVNode) {
         }
         else if (domVNode.hash === nextVNode.hash) {
-            nextVNode.dom = domVNode.dom;
+            return domVNode;
         }
-        else if (nextVNode.type == 1 /* Element */ && (domVNode.type === 3 /* Text */ || nextVNode.name !== domVNode.name)) {
+        else if (domVNode.type !== nextVNode.type) {
             parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
+            console.log("replaceChild");
         }
         else if (domVNode.type === 3 /* Text */ && nextVNode.type === 3 /* Text */) {
             if (domVNode.text !== nextVNode.text) {
@@ -203,7 +207,15 @@ var Vayu;
             }
             nextVNode.dom = domVNode.dom;
         }
-        else {
+        else if (domVNode.type == 1 /* Element */ && nextVNode.type == 1 /* Element */) {
+            // Different dom kinds of dom elements e.g iframe -> div. Replace element
+            if (domVNode.name !== nextVNode.name) {
+                parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
+                console.log("replaceChild");
+            }
+            else {
+                updateChildren(parentElem, domVNode, nextVNode);
+            }
         }
         return nextVNode;
     }
@@ -225,5 +237,90 @@ var Vayu;
         }
     }
     Vayu.updateAttrs = updateAttrs;
+    function updateChildren(parentElem, domVNode, nextVNode) {
+        const domChildren = domVNode.children;
+        const domChildrenLen = domChildren ? domChildren.length : 0;
+        const nextChildren = nextVNode.children;
+        const nextChildrenLen = nextChildren ? nextChildren.length : 0;
+        let i = 0;
+        // Replace children
+        for (; i < domChildrenLen && i < nextChildrenLen; ++i) {
+            nextChildren[i] = updateElem(parentElem, domChildren[i], nextChildren[i]);
+        }
+    }
+    Vayu.updateChildren = updateChildren;
 })(Vayu || (Vayu = {}));
+/*
+export function patchChildren(elem: Element, oldChildren: NodeList, newChildren: VChildNode[] = []) {
+    const oldKeys: { [key: string]: Node } = {};
+    const newKeys: { [key: string]: VChildNode } = {};
+    let nodeCountMap: { [key: string]: number } = {};
+
+    // Compute old & new keys. We assign keys to child.
+    // Children of same type match. If a key is defined, it is used for matching
+    for (let i = 0, len = oldChildren.length; i < len; ++i) {
+        const childNode = oldChildren[i];
+        const nodeType = childNode.nodeType;
+
+        if (nodeType === NodeType.Element || nodeType === NodeType.Text) {
+            const nodeName = childNode.nodeName.toLowerCase();
+            if (nodeType === NodeType.Element && (<Element>childNode).hasAttribute("key")) {
+                oldKeys[`${nodeName}_${(<Element>childNode).getAttribute("key")}`] = childNode;
+            } else {
+                const nodeCount = (nodeCountMap[nodeName] ? ++nodeCountMap[nodeName] : nodeCountMap[nodeName] = 1);
+                oldKeys[`${nodeName}${nodeCount}`] = childNode;
+            }
+        }
+    }
+
+    nodeCountMap = {};
+    for (let i = 0, len = newChildren.length; i < len; ++i) {
+        const childNode = newChildren[i];
+        if (childNode) {
+            const nodeName = (typeof childNode === "string") ? "#text" : childNode.tag;
+            if (typeof childNode !== "string" && childNode.key){
+                newKeys[`${nodeName}_${childNode.key}`] = childNode;
+            } else {
+                const nodeCount = (nodeCountMap[nodeName] ? ++nodeCountMap[nodeName] : nodeCountMap[nodeName] = 1);
+                newKeys[`${nodeName}${nodeCount}`] = childNode;
+            }
+        }
+    }
+
+
+    for (let key of Object.keys(newKeys)) {
+        // Patch element
+        const newNode = newKeys[key];
+
+        if (oldKeys.hasOwnProperty(key)) {
+            if (typeof newNode === "string") {
+                oldKeys[key].nodeValue = newNode;
+                //console.log("setText", elem, key);
+            }
+            else {
+                patchElem(elem, <Element>oldKeys[key], newNode);
+            }
+            delete oldKeys[key];
+        }
+        else {
+            if (typeof newNode === "string") {
+                elem.appendChild(document.createTextNode(newNode));
+                //console.log("createText", elem, key);
+            }
+            else {
+                elem.appendChild(toDomElem(newNode));
+                //console.log("addChild", elem, key);
+            }
+        }
+    }
+
+    // Remove elements
+    for (let key of Object.keys(oldKeys)) {
+        elem.removeChild(oldKeys[key]);
+        //console.log("removeChild", elem, key);
+    }
+
+    // console.log(oldKeys, newKeys);
+}
+*/ 
 //# sourceMappingURL=vayu.js.map

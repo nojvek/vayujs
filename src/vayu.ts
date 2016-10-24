@@ -144,7 +144,7 @@ namespace Vayu {
 
 
     function updateHashStr(hash: number, str: string): number {
-        //for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i));
+        for (let i = str.length; i; hash = (hash * 33) ^ str.charCodeAt(--i));
         return hash;
     }
 
@@ -153,10 +153,10 @@ namespace Vayu {
     }
 
 
-    export function apply(domElem: DomElement, nextVNode: VNode) {
+    export function render(domElem: DomElement, nextVNode: VNode) {
         const domVNode = (<any>domElem).vnode || fromDomNode(domElem.firstElementChild);
-        updateElem(domElem, domVNode, nextVNode);
-        if (nextVNode && domVNode.hash !== nextVNode.hash) {
+        nextVNode = updateElem(domElem, domVNode, nextVNode);
+        if (nextVNode && domVNode.vnode !== nextVNode) {
             (<any>domElem).vnode = nextVNode;
         }
     }
@@ -257,37 +257,49 @@ namespace Vayu {
         // Create new domNode from curVNodeii
         if (!domVNode && nextVNode) {
             parentElem.appendChild(toDomNode(nextVNode));
+            console.log("appendChild");
         }
         // Remove existing domNode
         else if (domVNode && !nextVNode) {
             parentElem.removeChild(domVNode.dom);
+            console.log("removeChild");
         }
         // Same Ref, noop
         else if (domVNode === nextVNode ) {
         }
-        // Hashes match, copy dom to new node
+        // Hashes match, return existing domVNode
         else if (domVNode.hash === nextVNode.hash) {
-            nextVNode.dom = domVNode.dom;
+            return domVNode;
         }
-        // Either elem->text change or div->iframe change. Replace node
-        else if (nextVNode.type == NodeType.Element && (domVNode.type === NodeType.Text || nextVNode.name !== domVNode.name)) {
-           parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
+        // elem->text or text->elem change, replace node
+        else if (domVNode.type !== nextVNode.type) {
+            parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
+            console.log("replaceChild");
+
         }
         // Edit Text
         else if (domVNode.type === NodeType.Text && nextVNode.type === NodeType.Text) {
             if (domVNode.text !== nextVNode.text) {
                 domVNode.dom.nodeValue = nextVNode.text;
+                //console.log("replaceText", nextVNode.text)
             }
             nextVNode.dom = domVNode.dom
         }
         // Edit DomElement
-        else {
-            //patchAttrs(elem, getElemAttrs(elem), newNode.attrs);
-            //patchChildren(elem, elem.childNodes, newNode.children);
+        else if(domVNode.type == NodeType.Element && nextVNode.type == NodeType.Element){
+            // Different dom kinds of dom elements e.g iframe -> div. Replace element
+            if (domVNode.name !== nextVNode.name) {
+                parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
+                console.log("replaceChild");
+            }
+            else {
+                updateChildren(parentElem, domVNode, nextVNode);
+            }
         }
 
         return nextVNode;
     }
+
 
     export function updateAttrs(domElem: DomElement, oldAttrs: any, newAttrs: any) {
         // Add/edit attributes
@@ -308,6 +320,21 @@ namespace Vayu {
             //console.log("removeAttribute", elem, key);
         }
     }
+
+    export function updateChildren(parentElem:DomNode, domVNode: VElementNode, nextVNode: VElementNode) {
+        const domChildren = domVNode.children;
+        const domChildrenLen = domChildren ? domChildren.length : 0;
+        const nextChildren = nextVNode.children;
+        const nextChildrenLen = nextChildren ? nextChildren.length : 0;
+        let i = 0;
+
+        // Replace children
+        for (; i < domChildrenLen && i < nextChildrenLen; ++i) {
+            nextChildren[i] = updateElem(parentElem, domChildren[i], nextChildren[i]);
+        }
+    }
+}
+
 
     /*
     export function patchChildren(elem: Element, oldChildren: NodeList, newChildren: VChildNode[] = []) {
@@ -382,4 +409,3 @@ namespace Vayu {
         // console.log(oldKeys, newKeys);
     }
     */
-}

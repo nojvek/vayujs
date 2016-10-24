@@ -91,10 +91,10 @@ namespace TodoView {
 }
 
 let randomGrid = {
-    size: 100,
+    size: 70,
     getRandomNumber() {
         //return "0";
-        return Math.random() > 0.9 ? 1 : 0
+        return Math.random() > 0.999 ? 1 : 0
         //return Math.floor(Math.random() * 10).toString();
     },
     render() {
@@ -113,9 +113,9 @@ let randomGrid = {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    Vayu.apply(document.body, randomGrid.render())
+    Vayu.render(document.body, randomGrid.render())
     requestAnimationFrame(function render() {
-        Vayu.apply(document.body, randomGrid.render());
+        Vayu.render(document.body, randomGrid.render());
         requestAnimationFrame(render);
     })
 })
