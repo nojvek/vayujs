@@ -99,29 +99,35 @@ var Vayu;
     }
     function render(domElem, nextVNode) {
         const domVNode = domElem.vnode || fromDomNode(domElem.firstElementChild);
+        //console.log("renderFrame", domVNode, nextVNode)
         nextVNode = updateElem(domElem, domVNode, nextVNode);
         if (nextVNode && domVNode.vnode !== nextVNode) {
             domElem.vnode = nextVNode;
         }
     }
     Vayu.render = render;
-    function toHtml(vnode, indent = 0) {
+    function toHtml(vnode, indent = 0, pretty = true) {
         if (!vnode)
             return "";
+        let indentStr = pretty ? "  ".repeat(indent) : "";
         if (vnode.type == 3 /* Text */) {
-            return vnode.text;
+            return vnode.text ? `${indentStr}${vnode.text}\n` : "";
         }
-        let indentStr = "  ".repeat(indent);
         let str = `${indentStr}<${vnode.name}`;
         if (vnode.attrs) {
-            str += Object.keys(vnode.attrs).map(attr => ` ${attr}="${vnode.attrs[attr]}"`).join("");
+            for (let attr of Object.keys(vnode.attrs)) {
+                str += ` ${attr}="${vnode.attrs[attr]}"`;
+            }
         }
         if (vnode.children && vnode.children.length) {
-            str += ">" + vnode.children.map(child => toHtml(child, indent + 1)).join("\n");
-            str += `\n${indentStr}</${vnode.name}>`;
+            str += ">\n";
+            for (let child of vnode.children) {
+                str += toHtml(child, indent + 1, pretty);
+            }
+            str += `${indentStr}</${vnode.name}>\n`;
         }
         else {
-            str += `/>`;
+            str += `/>\n`;
         }
         return str;
     }
@@ -130,7 +136,7 @@ var Vayu;
         if (!domNode)
             return null;
         if (domNode.nodeType === 3 /* Text */) {
-            return createTextNode(domNode.nodeValue, domNode);
+            return createTextNode(domNode.nodeValue.trim(), domNode);
         }
         const name = domNode.nodeName.toLowerCase();
         const attrs = {};
@@ -161,18 +167,17 @@ var Vayu;
     function toDomNode(vnode) {
         let domNode;
         if (vnode.type == 1 /* Element */) {
-            const { name, attrs, children } = vnode;
-            domNode = document.createElement(name);
+            const { attrs } = vnode;
+            //TODO: Handle SVG here
+            domNode = document.createElement(vnode.name);
             // TODO: Setup event listeners and proper inline styles from class and style variables
             if (attrs) {
                 for (let attrName of Object.keys(attrs)) {
                     domNode.setAttribute(attrName, attrs[attrName]);
                 }
             }
-            if (children) {
-                for (let child of children) {
-                    domNode.appendChild(toDomNode(child));
-                }
+            if (vnode.children) {
+                updateChildren(domNode, null, vnode);
             }
         }
         else {
@@ -186,20 +191,15 @@ var Vayu;
         // Create new domNode from curVNodeii
         if (!domVNode && nextVNode) {
             parentElem.appendChild(toDomNode(nextVNode));
-            console.log("appendChild");
         }
         else if (domVNode && !nextVNode) {
             parentElem.removeChild(domVNode.dom);
-            console.log("removeChild");
-        }
-        else if (domVNode === nextVNode) {
         }
         else if (domVNode.hash === nextVNode.hash) {
             return domVNode;
         }
         else if (domVNode.type !== nextVNode.type) {
             parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
-            console.log("replaceChild");
         }
         else if (domVNode.type === 3 /* Text */ && nextVNode.type === 3 /* Text */) {
             if (domVNode.text !== nextVNode.text) {
@@ -211,10 +211,10 @@ var Vayu;
             // Different dom kinds of dom elements e.g iframe -> div. Replace element
             if (domVNode.name !== nextVNode.name) {
                 parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
-                console.log("replaceChild");
             }
             else {
-                updateChildren(parentElem, domVNode, nextVNode);
+                updateChildren(domVNode.dom, domVNode, nextVNode);
+                nextVNode.dom = domVNode.dom;
             }
         }
         return nextVNode;
@@ -237,15 +237,19 @@ var Vayu;
         }
     }
     Vayu.updateAttrs = updateAttrs;
-    function updateChildren(parentElem, domVNode, nextVNode) {
-        const domChildren = domVNode.children;
+    function updateChildren(domNode, domVNode, nextVNode) {
+        const domChildren = domVNode && domVNode.children;
         const domChildrenLen = domChildren ? domChildren.length : 0;
-        const nextChildren = nextVNode.children;
+        const nextChildren = nextVNode && nextVNode.children;
         const nextChildrenLen = nextChildren ? nextChildren.length : 0;
         let i = 0;
-        // Replace children
-        for (; i < domChildrenLen && i < nextChildrenLen; ++i) {
-            nextChildren[i] = updateElem(parentElem, domChildren[i], nextChildren[i]);
+        // Upsert children
+        for (; i < nextChildrenLen; ++i) {
+            nextChildren[i] = updateElem(domNode, (i < domChildrenLen) ? domChildren[i] : null, nextChildren[i]);
+        }
+        // Remove children
+        for (; i < domChildrenLen; ++i) {
+            updateElem(domNode, domChildren[i], null);
         }
     }
     Vayu.updateChildren = updateChildren;

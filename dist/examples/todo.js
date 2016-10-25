@@ -66,14 +66,14 @@ var TodoView;
         ));
 })(TodoView || (TodoView = {}));
 let randomGrid = {
-    size: 70,
+    size: 20,
     getRandomNumber() {
         //return "0";
-        return Math.random() > 0.999 ? 1 : 0;
+        return Math.random() > 0.9 ? 1 : 0;
         //return Math.floor(Math.random() * 10).toString();
     },
     render() {
-        return (Vayu.createElement("table", null, new Array(this.size).fill(0).map(() => Vayu.createElement("tr", null, new Array(this.size).fill(0).map(() => Vayu.createElement("td", {style: "border: 1px solid gray"}, this.getRandomNumber()))))));
+        return (Vayu.createElement("table", null, new Array(Math.ceil(Math.random() * this.size)).fill(0).map(() => Vayu.createElement("tr", null, new Array(this.size).fill(0).map(() => Vayu.createElement("td", {style: "border: 1px solid gray"}, this.getRandomNumber()))))));
     }
 };
 document.addEventListener('DOMContentLoaded', () => {

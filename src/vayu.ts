@@ -155,32 +155,39 @@ namespace Vayu {
 
     export function render(domElem: DomElement, nextVNode: VNode) {
         const domVNode = (<any>domElem).vnode || fromDomNode(domElem.firstElementChild);
+        //console.log("renderFrame", domVNode, nextVNode)
         nextVNode = updateElem(domElem, domVNode, nextVNode);
         if (nextVNode && domVNode.vnode !== nextVNode) {
             (<any>domElem).vnode = nextVNode;
         }
     }
 
-    export function toHtml(vnode: VNode, indent = 0): string {
+    export function toHtml(vnode: VNode, indent = 0, pretty = true): string {
         if (!vnode) return "";
 
+        let indentStr = pretty ? (<any>"  ").repeat(indent) : "";
+
         if (vnode.type == NodeType.Text) {
-            return vnode.text;
+            return vnode.text ? `${indentStr}${vnode.text}\n` : "";
         }
 
-        let indentStr = (<any>"  ").repeat(indent);
         let str = `${indentStr}<${vnode.name}`;
 
         if (vnode.attrs) {
-            str += Object.keys(vnode.attrs).map(attr => ` ${attr}="${vnode.attrs[attr]}"`).join("");
+            for (let attr of Object.keys(vnode.attrs)) {
+                str += ` ${attr}="${vnode.attrs[attr]}"`
+            }
         }
 
         if (vnode.children && vnode.children.length) {
-            str += ">" + vnode.children.map(child => toHtml(child, indent + 1)).join("\n");
-            str += `\n${indentStr}</${vnode.name}>`;
+            str += ">\n";
+            for (let child of vnode.children) {
+                str += toHtml(child, indent + 1, pretty);
+            }
+            str += `${indentStr}</${vnode.name}>\n`;
         }
         else {
-            str += `/>`;
+            str += `/>\n`;
         }
 
         return str;
@@ -190,7 +197,7 @@ namespace Vayu {
         if (!domNode) return null;
 
         if (domNode.nodeType === NodeType.Text) {
-            return createTextNode(domNode.nodeValue, domNode);
+            return createTextNode(domNode.nodeValue.trim(), domNode);
         }
 
         const name = domNode.nodeName.toLowerCase();
@@ -229,8 +236,9 @@ namespace Vayu {
         let domNode: DomNode;
 
         if (vnode.type == NodeType.Element) {
-            const {name, attrs, children} = vnode;
-            domNode = document.createElement(name);
+            const {attrs} = vnode;
+            //TODO: Handle SVG here
+            domNode = document.createElement(vnode.name);
 
             // TODO: Setup event listeners and proper inline styles from class and style variables
             if (attrs) {
@@ -239,10 +247,8 @@ namespace Vayu {
                 }
             }
 
-            if (children) {
-                for (let child of children) {
-                    (<DomElement>domNode).appendChild(toDomNode(child));
-                }
+            if (vnode.children) {
+                updateChildren(domNode, null, vnode);
             }
 
         } else {
@@ -257,15 +263,12 @@ namespace Vayu {
         // Create new domNode from curVNodeii
         if (!domVNode && nextVNode) {
             parentElem.appendChild(toDomNode(nextVNode));
-            console.log("appendChild");
+            //console.log("appendChild", nextVNode);
         }
         // Remove existing domNode
         else if (domVNode && !nextVNode) {
             parentElem.removeChild(domVNode.dom);
-            console.log("removeChild");
-        }
-        // Same Ref, noop
-        else if (domVNode === nextVNode ) {
+            //console.log("removeChild", domVNode);
         }
         // Hashes match, return existing domVNode
         else if (domVNode.hash === nextVNode.hash) {
@@ -274,7 +277,7 @@ namespace Vayu {
         // elem->text or text->elem change, replace node
         else if (domVNode.type !== nextVNode.type) {
             parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
-            console.log("replaceChild");
+            //console.log("replaceChild", domVNode, nextVNode);
 
         }
         // Edit Text
@@ -290,10 +293,11 @@ namespace Vayu {
             // Different dom kinds of dom elements e.g iframe -> div. Replace element
             if (domVNode.name !== nextVNode.name) {
                 parentElem.replaceChild(toDomNode(nextVNode), domVNode.dom);
-                console.log("replaceChild");
+                //console.log("replaceChild", domVNode, nextVNode);
             }
             else {
-                updateChildren(parentElem, domVNode, nextVNode);
+                updateChildren(domVNode.dom, domVNode, nextVNode);
+                nextVNode.dom = domVNode.dom
             }
         }
 
@@ -321,16 +325,21 @@ namespace Vayu {
         }
     }
 
-    export function updateChildren(parentElem:DomNode, domVNode: VElementNode, nextVNode: VElementNode) {
-        const domChildren = domVNode.children;
+    export function updateChildren(domNode:DomNode, domVNode: VElementNode, nextVNode: VElementNode) {
+        const domChildren = domVNode && domVNode.children;
         const domChildrenLen = domChildren ? domChildren.length : 0;
-        const nextChildren = nextVNode.children;
+        const nextChildren = nextVNode && nextVNode.children;
         const nextChildrenLen = nextChildren ? nextChildren.length : 0;
         let i = 0;
 
-        // Replace children
-        for (; i < domChildrenLen && i < nextChildrenLen; ++i) {
-            nextChildren[i] = updateElem(parentElem, domChildren[i], nextChildren[i]);
+        // Upsert children
+        for (; i < nextChildrenLen; ++i) {
+            nextChildren[i] = updateElem(domNode, (i < domChildrenLen) ? domChildren[i] : null, nextChildren[i]);
+        }
+
+        // Remove children
+        for (; i < domChildrenLen; ++i) {
+            updateElem(domNode, domChildren[i], null);
         }
     }
 }
